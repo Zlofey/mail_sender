@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:${WEB_PORT}"
+    volumes:
+      - .:/app
+    ports:
+      - "${WEB_PORT}:${WEB_PORT}"
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - DJANGO_DEBUG=${DJANGO_DEBUG}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+
+  celery:
+    build: .
+    command: celery -A config worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    environment:
+      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
